@@ -19,16 +19,16 @@ double StorageNode::GetF() const
 double StorageNode::GetG() const
 {
 	// the bigger the distance the better
-	int enamyX = enamy->GetX();
-	int enamyY = enamy->GetY();
-	return sqrt(pow(s->getLocation().GetX() - enamyX, 2) + pow(s->getLocation().GetY() - enamyY, 2));
+	int enamyX = enamy->getX();
+	int enamyY = enamy->getY();
+	return sqrt(pow(s->getLocation().getX() - enamyX, 2) + pow(s->getLocation().getY() - enamyY, 2));
 	return g;
 }
 
 double StorageNode::GetH() const
 {
-	return sqrt(pow(current->GetX() - s->getLocation().GetX(), 2) +
-		pow(current->GetY() - s->getLocation().GetY(), 2));
+	return sqrt(pow(current->getX() - s->getLocation().getX(), 2) +
+		pow(current->getY() - s->getLocation().getY(), 2));
 }
 
 Storage & StorageNode::getStorage() const

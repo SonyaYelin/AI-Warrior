@@ -6,20 +6,20 @@ Node::Node(): point(0,0), target(0,0), g(0)
 {
 }
 
-double Node::GetF() const
+double Node::getF() const
 {
-	return GetG()+GetH();
+	return getG()+getH();
 }
 
-double Node::GetG() const
+double Node::getG() const
 {
 	return g;
 }
 
-double Node::GetH() const
+double Node::getH() const
 {
-	return sqrt(pow(point.GetX() - target.GetX(), 2) +
-		pow(point.GetY() - target.GetY(), 2));
+	return sqrt(pow(point.getX() - target.getX(), 2) +
+			pow(point.getY() - target.getY(), 2));
 }
 
 
@@ -31,7 +31,7 @@ Node::Node(const Point2D& p, const Point2D& t, double g)
 }
 
 
-Point2D Node::GetPoint() const
+Point2D Node::getPoint() const
 {
 	return point;
 }

@@ -6,13 +6,16 @@ class Node
 public:
 	Node();
 private:
-	Point2D point, target;
-	double g;
+	double	g;
+	Point2D	point;
+	Point2D	target;
+
 public:
-	double GetF() const;
-	double GetG() const;
-	double GetH() const;
 	Node(const Point2D& p, const Point2D& t, double g);
-	Point2D GetPoint() const;
+
+	double getF() const;
+	double getG() const;
+	double getH() const;
+	Point2D getPoint() const;
 };
 

@@ -13,13 +13,13 @@ Point2D::Point2D(int x, int y)
 }
 
 
-int Point2D::GetX() const
+int Point2D::getX() const
 {
 	return x;
 }
 
 
-int Point2D::GetY() const
+int Point2D::getY() const
 {
 	return y;
 }
@@ -27,5 +27,5 @@ int Point2D::GetY() const
 
 bool Point2D::operator==(const Point2D& other)
 {
-	return x==other.x && y== other.y;
+	return x == other.x && y == other.y;
 }

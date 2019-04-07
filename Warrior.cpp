@@ -23,9 +23,9 @@ Warrior::~Warrior()
 
 void Warrior::updateCurrentRoom()
 {
-	Room* rooms = maze->getRooms();
+	Room *rooms = maze->getRooms();
 
-	for (int i = 0; i < Maze::NUM_ROOMS; i++)
+	for (int i = 0; i < Constants::NUM_ROOMS; i++)
 	{
 		if (rooms[i].locatedInTheRoom(location))
 		{
@@ -65,14 +65,12 @@ void Warrior::updateActions()
 	actionQueue.push(new Action(*this, Action::FIND_MED));
 }
 
-bool Warrior::isInRoom()
+bool Warrior::isInRoom() const
 {
-	if (currentRoom != nullptr)
-		return true;
-	return false;
+	return currentRoom != nullptr;
 }
 
-bool Warrior::canShoot(Warrior &other, int maxDist)
+bool Warrior::canShoot(const Warrior &other, int maxDist) const
 {
 	return	isInRoom()
 			&& other.isInRoom()
@@ -80,99 +78,115 @@ bool Warrior::canShoot(Warrior &other, int maxDist)
 			&& getDistance(other) <= maxDist;
 }
 
-void Warrior::selectAction(Warrior& other)
+void Warrior::makeMove(Warrior& other)
 {
-	Storage *s;
 	static int count = 0;
-	count++;
 
-	 // reset path in each interval
-	if (count >= interval && ( isInRoom() || other.isInRoom()))
+	// reset path after each interval
+	if ( ++count >= interval && ( isInRoom() || other.isInRoom()) )
 	{
 		count = 0;
-		while(!walkingPath.empty())
+		while (!walkingPath.empty())
 			walkingPath.pop();
 	}
 
-	if (walkingPath.size() > 0)
+	// if there is a path - move one step
+	if (walkingPath.size() > 0) 
 	{
-		// move one step
-		moveWarrior(walkingPath.top());
+		moveWarrior(walkingPath.top()); 
 		walkingPath.pop();
 	}
-	else // create path
+	else 
 	{
-		currentAction = actionQueue.top();	// FIND_AMMO, FIND_MED, FIGHT
-
-		switch (currentAction->getType())
-		{
-		case Action::FIGHT:
-			findEnemy(other);
-			break;
-		
-		case Action::FIND_AMMO:
-			s = maze->getIfStorage(location, Action::FIND_AMMO);
-			if (s != nullptr)
-			{
-				double neededAmount = MAX_GUNS_AMMO - gunsAmmo + MAX_GRANDE_AMMO - grenadeAmmo;
-				double avilable = s->getAmount();
-				if (avilable >= neededAmount)
-				{
-					s->takeStorage(neededAmount);
-					gunsAmmo = MAX_GUNS_AMMO;
-					grenadeAmmo = MAX_GRANDE_AMMO;
-				}
-				else if (avilable > 0)
-				{
-					s->takeStorage(avilable);
-					if (avilable > MAX_GUNS_AMMO)
-					{
-						avilable -= MAX_GUNS_AMMO - s->getAmount();
-						gunsAmmo = MAX_GUNS_AMMO;
-						grenadeAmmo += (int)avilable;
-					}
-					else
-						gunsAmmo += (int)avilable;
- 
-					maze->removeStorage(*s, Action::FIND_AMMO);
-				}
-				cout << "--- Warrior" << id << "found AMMO !!! ---" << endl;
-				break;
-			}
-
-			lookForStorage(maze->getTargetStorage(Action::FIND_AMMO, location, other.getLocation()), true);
-			break;
-		
-		case Action::FIND_MED:
-			s = maze->getIfStorage(location, Action::FIND_MED);
-			if (s != nullptr)
-			{
-				double neededAmount = MAX_LIFE - lifePoint;
-				double avilable = s->getAmount();
-				if (avilable >= neededAmount)
-				{
-					s->takeStorage(neededAmount);
-					lifePoint = MAX_LIFE;
-				}
-				else if (avilable > 0)
-				{
-					s->takeStorage(avilable);
-					lifePoint += avilable;
-					maze->removeStorage(*s, Action::FIND_MED);
-				}
-				cout << "--- Warrior" << id << "found AMMO !!! ---" << endl;
-				break;
-			}
-
-			lookForStorage(maze->getTargetStorage(Action::FIND_MED, location, other.getLocation()), false);
-			break;
-		}
-
+		createPath(other);
 		updateActions();
 	}
 }
 
-void Warrior::exitRoom(Room &destRoom)
+void Warrior::createPath(Warrior &other)
+{
+	currentAction = actionQueue.top();	// FIND_AMMO, FIND_MED, FIGHT
+	int type = currentAction->getType();
+	Storage *s;
+
+	switch (type)
+	{
+		case Action::FIGHT:
+			lookForEnemy(other);
+			break;
+
+		case Action::FIND_AMMO:
+			s = maze->getIfStorage(location, Action::FIND_AMMO);
+			if (s != nullptr)
+			{
+				double neededAmount = Constants::MAX_GUNS_AMMO - gunsAmmo + Constants::MAX_GRANDE_AMMO - grenadeAmmo;
+				takeAmmoStorage(*s, neededAmount);
+			}
+			else
+				lookForStorage(maze->getTargetStorage(Action::FIND_AMMO, location, other.getLocation()), true);
+			break;
+
+		case Action::FIND_MED:
+			s = maze->getIfStorage(location, Action::FIND_MED);
+			if (s != nullptr)
+			{
+				double neededAmount = Constants::MAX_LIFE - lifePoint;
+				takeMedStorage(*s, neededAmount);
+			}
+			else
+				lookForStorage(maze->getTargetStorage(Action::FIND_MED, location, other.getLocation()), false);
+			break;
+	}
+}
+
+void Warrior::takeMedStorage(Storage &s, double neededAmount)
+{
+	double avilable = s.getAmount();
+	if (avilable >= neededAmount)
+	{
+		s.takeAmount(neededAmount);
+		lifePoint = Constants::MAX_LIFE;
+	}
+	else if (avilable > 0)
+	{
+		s.takeAmount(avilable);
+		lifePoint += avilable;
+		maze->removeStorage(s, Action::FIND_MED);
+	}
+	cout << "--- Warrior" << id << "found AMMO !!! ---" << endl;
+}
+
+void Warrior::takeAmmoStorage(Storage &s, double neededAmount)
+{
+	double avilable = s.getAmount();
+
+	if (avilable >= neededAmount)
+	{
+		s.takeAmount(neededAmount);
+		gunsAmmo = Constants::MAX_GUNS_AMMO;
+		grenadeAmmo = Constants::MAX_GRANDE_AMMO;
+	}
+	
+	else if (avilable >= 0)
+	{
+		s.takeAmount(avilable);
+		if (avilable > Constants::MAX_GUNS_AMMO)
+		{
+			avilable -= Constants::MAX_GUNS_AMMO - s.getAmount();
+			gunsAmmo = Constants::MAX_GUNS_AMMO;
+			grenadeAmmo += (int)avilable;
+			s.takeAmount(avilable);
+
+		}
+		else
+			gunsAmmo += (int)avilable;
+
+		maze->removeStorage(s, Action::FIND_AMMO);
+	}
+	cout << "--- Warrior" << id << "found AMMO !!! ---" << endl;
+}
+
+void Warrior::exitRoom(const Room &dest)
 {
 	cout << "--- " << id << " is exiting room: " << currentRoom->getId() << "---" << endl;
 
@@ -183,35 +197,35 @@ void Warrior::exitRoom(Room &destRoom)
 	
 	for (int i = 0; i < numOfDoors; i++)
 	{
-		if (doors[i]->isDestinationDoor(destRoom))
+		if (doors[i]->isDestinationDoor(dest))
 		{
 			nextDoor = doors[i];
 			break;
 		}
 	}
 	walkingPath = maze->aStar(location, nextDoor->getExitLocation());
-	destRoom = *nextDoor->getDestinations()[0];
+	destRoom = nextDoor->getDestinations()[0];
 }
 
-void Warrior::findEnemy(Warrior &other)
+void Warrior::lookForEnemy(Warrior &other)
 {
-	// enamy in the same room
 	// if close enough to shoot
-	if (canShoot(other, SHOOT_DISTANCE))
+	if (canShoot(other, Constants::SHOOT_DISTANCE))
 	{
 		clearPath();
 		shoot(other);
 		return;
 	}
 
-	// else get closer to enemy
+	// if in the same room
 	if (isInRoom() && other.isInRoom() && currentRoom->getId() == other.getCurrentRoom().getId())
 		lookForEnemyInRoom(other);
 
-	// enemy in different room
+	// enemy is in a different room
 	else if (isInRoom() && other.isInRoom())
 		exitRoom(other.getCurrentRoom());
 	
+	// enemy is in hallway 
 	else if (&other.getDestRoom() != nullptr)
 		exitRoom(other.getDestRoom());
 	else
@@ -238,9 +252,9 @@ void Warrior::shoot(Warrior &other)
 		return;
 	}
 
-	// check if the warrior is close enough
-	double distance = SHOOT_DISTANCE - (int)getDistance(other);
-	if (getDistance(other) >= SHOOT_DISTANCE)
+	// Check if the warrior is close enough
+	double distance = Constants::SHOOT_DISTANCE - (int)getDistance(other);
+	if (getDistance(other) >= Constants::SHOOT_DISTANCE)
 	{
 		if (grenadeAmmo <= 0)
 			walkingPath = maze->aStar(location, other.getLocation());
@@ -248,9 +262,9 @@ void Warrior::shoot(Warrior &other)
 		{
 			srand(time(0));
 			grenadeAmmo--;
-			if (rand() % 4 == 1)
+			if (rand() % Constants::MAX_GRENADE == Constants::GRENADE)
 			{
-				other.injured(90);			
+				other.injured(Constants::GRENADE_DAMAGE);
 				cout << " warrior " << id << " threw grande at " << other.id << endl;
 			}
 		}
@@ -265,9 +279,9 @@ void Warrior::shoot(Warrior &other)
 	}
 }
 
-void Warrior::injured(double hitPoint)
+void Warrior::injured(double damage)
 {
-	lifePoint -=  hitPoint;
+	lifePoint -= damage;
 	if (lifePoint <= 0)
 	{
 		lifePoint = 0;
@@ -281,8 +295,8 @@ void Warrior::injured(double hitPoint)
 
 double Warrior::getDistance(const Point2D &p1, const Point2D &p2) const
 {
-	int x = p1.GetX() - p2.GetX();
-	int y = p1.GetY() - p2.GetY();
+	int x = p1.getX() - p2.getX();
+	int y = p1.getY() - p2.getY();
 
 	return sqrt(pow(x, 2) + pow(y, 2));
 }
@@ -292,10 +306,10 @@ double Warrior::getDistance(const Warrior & other) const
 	return getDistance(this->getLocation(), other.getLocation());
 }
 
-void Warrior::lookForStorage(Storage &s, bool ammo)
+void Warrior::lookForStorage(const Storage &s, bool ammo)
 {
-	// look in the current room
-	if (currentRoom != nullptr && currentRoom->getId() != s.getRoom().getId())
+	// different rooms 
+	if ( isInRoom() && currentRoom->getId() != s.getRoom().getId())
 		exitRoom(s.getRoom());
 	
 	else if (ammo)
@@ -312,23 +326,23 @@ void Warrior::lookForStorage(Storage &s, bool ammo)
 
 void Warrior::lookForEnemyInRoom(Warrior &other)
 {
-	if (canShoot(other, SHOOT_DISTANCE))
+	if (canShoot(other, Constants::SHOOT_DISTANCE))
 		shoot(other);
 	else
 		walkingPath = maze->aStar(location, other.getLocation());
 }
 
-void Warrior::moveWarrior(Point2D &nextStep)
+void Warrior::moveWarrior(const Point2D &nextStep)
 {
 	// deleate the warrior from the maze
-	maze->parts[location.GetY()][location.GetX()].resetType();
+	maze->parts[location.getY()][location.getX()].resetType();
 
 	// change the location of warrior.
-	location.setX(nextStep.GetX());
-	location.setY(nextStep.GetY());
+	location.setX(nextStep.getX());
+	location.setY(nextStep.getY());
 	updateCurrentRoom();
 
 	// draw the warrior on the maze
-	maze->parts[location.GetY()][location.GetX()].setType(MazePart::WARRIOR);
+	maze->parts[location.getY()][location.getX()].setType(MazePart::WARRIOR);
 }
 

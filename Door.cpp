@@ -9,6 +9,8 @@ Door::Door(Room& current, Point2D &enterlocation, Point2D &exitlocation):
 
 Door::~Door()
 {
+	delete &enterLocation;
+	delete &exitLocation;
 }
 
 bool Door::isDestinationDoor(const Room& destination) const
@@ -17,8 +19,8 @@ bool Door::isDestinationDoor(const Room& destination) const
 
 	for (int i = 0; i < size; i++)
 	{
-		if (destinations[i]->GetCenter().GetX() == destination.GetCenter().GetX() 
-			&& destinations[i]->GetCenter().GetY() == destination.GetCenter().GetY())
+		if (destinations[i]->GetCenter().getX() == destination.GetCenter().getX() 
+			&& destinations[i]->GetCenter().getY() == destination.GetCenter().getY())
 			return true;
 	}
 	return false;

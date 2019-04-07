@@ -7,10 +7,13 @@ Maze* Maze::maze = nullptr;
 
 Maze::Maze()
 {
-	for (int i = 0; i < MSIZE; i++)
+	int size = Constants::MSIZE;
+	for (int i = 0; i < size; i++)
 	{
-		for (int j = 0; j < MSIZE; j++)
+		for (int j = 0; j < size; j++)
+		{
 			parts[i][j] = *new MazePart(new Point2D(j, i));
+		}
 	}
 
 	loadMazeFromFile();
@@ -20,19 +23,21 @@ Maze::Maze()
 
 Maze::~Maze()
 {
-	delete maze;
-	for (int i = 0; i < MSIZE; i++)
+	int size = Constants::MSIZE;
+	for (int i = 0; i < size; i++)
 	{
-		for (int j = 0; j < MSIZE; j++)
+		for (int j = 0; j < size; j++)
 			delete(&parts[i][j]);
 	}
-	for (int i = 0; i < STORAGE_NUM; i++)
+	for (int i = 0; i < Constants::STORAGE_NUM; i++)
 	{
 		delete(ammoStorage.at(i));
 		delete(medicalStorage.at(i));
 	}
-	for (int i = 0; i < NUM_ROOMS; i++)
-		delete(&all_rooms[i]);
+	for (int i = 0; i < Constants::NUM_ROOMS; i++)
+		delete(&rooms[i]);
+
+	delete maze;
 }
 
 Maze& Maze::getInstance()
@@ -42,8 +47,12 @@ Maze& Maze::getInstance()
 	return *maze;
 }
 
+/*
+Loads maze stracture from file - walls, rooms and doors
+*/
 void Maze::loadMazeFromFile()
 {
+	int mSize = Constants::MSIZE;
 	ifstream file;
 
 	// load maze
@@ -51,9 +60,9 @@ void Maze::loadMazeFromFile()
 	int col, row, type;
 	file >> col;
 	file >> row;
-	for (int i = 0; i < MSIZE; i++)
+	for (int i = 0; i < mSize; i++)
 	{
-		for (int j = 0; j < MSIZE; j++)
+		for (int j = 0; j < mSize; j++)
 		{
 			file >> type;
 			parts[i][j].setType(type);
@@ -66,94 +75,100 @@ void Maze::loadMazeFromFile()
 	file.open("rooms.txt");
 	int size, x, y, h, w;
 	file >> size;
-	for (int i = 0; i < NUM_ROOMS; i++)
+	for (int i = 0; i < Constants::NUM_ROOMS; i++)
 	{
 		file >> x;
 		file >> y;
 		file >> h;
 		file >> w;
 		int idx = i + 1;
-		all_rooms[i] = *new Room(idx, *new Point2D(x, y), w, h);
+		rooms[i] = *new Room(idx, *new Point2D(x, y), w, h);
 	}
 	file.close();
 
 	// load doors
-	file.open("doors2.txt");
+	file.open("doors.txt");
 	int from, x1, y1, x2, y2, rooms_num;
 	file >> size;
 
-	// sourceRoom ,enter and exit location of the doors, vactor of destionations
 	for (int i = 0; i < size; i++)
 	{
-		file >> from;
-		file >> x1;
+		file >> from;	// srcRoom 
+		file >> x1;		// enter point
 		file >> y1;
-		file >> x2;
+		file >> x2;		// exit point
 		file >> y2;
 		file >> rooms_num;
-		Door* door = new Door(all_rooms[from - 1], *new Point2D(x1, y1), *new Point2D(x2, y2));
+		Door* door = new Door(rooms[from - 1], *new Point2D(x1, y1), *new Point2D(x2, y2));
 
+		// doors destinations
 		for (int j = 0; j < rooms_num; j++) {
 			int roomIndex;
 			file >> roomIndex;
-			door->addDestination(all_rooms[roomIndex - 1]);
+			door->addDestination(rooms[roomIndex - 1]);
 		}
-		all_rooms[from - 1].addDoor(*door);
+		rooms[from - 1].addDoor(*door);
 	}
 	file.close();
 }
 
+/*
+Checks if there is a storage located in point p, if so - returns the storage
+*/
 Storage* Maze::getIfStorage(const Point2D &p, int type) const
 {
-	Storage *storage = nullptr;
+	vector<Storage*>::const_iterator itr;
 
 	switch (type)
 	{
 	case Action::FIND_AMMO:
-		for (int i = 0; i < STORAGE_NUM; i++)
+		for (itr = ammoStorage.begin() ; itr != ammoStorage.end() ; ++itr)
 		{
-			if (ammoStorage.at(i)->getLocation() == p)
-				return (ammoStorage.at(i));
+			if ( (*itr)->getLocation() == p )
+				return *itr;
 		}
 		break;
 
 	case Action::FIND_MED:
-		for (int i = 0; i < STORAGE_NUM; i++)
+		for (itr = medicalStorage.begin(); itr != medicalStorage.end(); ++itr)
 		{
-			if (medicalStorage.at(i)->getLocation() == p)
-				return (medicalStorage.at(i));
+			if ((*itr)->getLocation() == p)
+				return *itr;
 		}
 		break;
 	}
+
 	return nullptr;
 }
 
-void Maze::createStorages() {
-	
-	for (int i = 0; i < STORAGE_NUM; i++)
+void Maze::createStorages() {	
+	for (int i = 0; i < Constants::STORAGE_NUM; i++)
 	{
 		int roomIndex = i;
 
 		// set random points in the selected room		
 		Point2D *rand1 = new Point2D();
 		Point2D *rand2 = new Point2D();
-		all_rooms[roomIndex].setRandomLocation(*rand1, *rand2);
+		rooms[roomIndex].setRandomLocation(*rand1, *rand2);
 
-		Storage *s1 = new Storage(i, all_rooms[roomIndex], *rand1, MazePart::AMMO, 52);
-		Storage *s2 = new Storage(i, all_rooms[roomIndex], *rand2, MazePart::MEDICAL, 80);
-
+		Storage *s1 = new Storage(i, rooms[roomIndex], *rand1, MazePart::AMMO, 52);
 		ammoStorage.push_back(s1);
-		medicalStorage.push_back(s2);
-
 		drawStorage(*s1);
+
+		Storage *s2 = new Storage(i, rooms[roomIndex], *rand2, MazePart::MEDICAL, 80);
+		medicalStorage.push_back(s2);
 		drawStorage(*s2);
 	}
 }
 
+/*
+Removes storage from storages-vector
+Called when storage is empty
+*/
 void Maze::removeStorage(Storage &s, int type)
 {
-	int x = s.getLocation().GetX();
-	int y = s.getLocation().GetY();
+	int x = s.getLocation().getX();
+	int y = s.getLocation().getY();
 	vector<Storage*>::const_iterator itr;
 
 	switch (type)
@@ -174,7 +189,6 @@ void Maze::removeStorage(Storage &s, int type)
 
 		if (s.getId() == (*itr)->getId())
 			((vector<Storage*>)medicalStorage).pop_back();
-		
 		else
 		{
 			*(&s) = *(*itr);
@@ -191,31 +205,31 @@ void Maze::removeStorage(Storage &s, int type)
 void Maze::drawStorage(const Storage &s)
 {
 	Point2D &location = s.getLocation();
-	parts[location.GetY()][location.GetX()].setType(s.getType());
-	parts[location.GetY()][location.GetX()].setOriginType(s.getType());
+	parts[location.getY()][location.getX()].setType(s.getType());
+	parts[location.getY()][location.getX()].setOriginType(s.getType());
 }
 
+/*
+Each part of the maze gets a safty-score
+*/
 void Maze::setSaftyScores()
 {
 	int spaces = 0;
 	int total = Warrior::MAX_SAFTY_SCORE; 
+	int size = Constants::MSIZE;
 
-	for (int i = 0; i < MSIZE; i++)
+	for (int i = 0; i < size; i++)
 	{
-		for (int j = 0; j < MSIZE; j++)
+		for (int j = 0; j < size; j++)
 		{
-			spaces = countSpaces(i, j);
-
+			// safty determined by the number of spaces around the point
+			spaces = countSpaces(i, j); 
 			double score = (spaces / total);
+
 			parts[i][j].setSaftyScore(score);
 		}
 	}
 } 
-
-double Maze::getSafty(int x, int y) const
-{
-	return parts[y][x].getSaftyScore();
-}
 
 int Maze::countSpaces(int i, int j)
 {
@@ -233,14 +247,18 @@ int Maze::countSpaces(int i, int j)
 
 Room* Maze::getRooms() const
 {
-	return (Room*)all_rooms;
+	return (Room*)rooms;
 }
 
 double Maze::getSaftyScore(Point2D &point) const
 {
-	return parts[point.GetY()][point.GetX()].getSaftyScore();
+	return parts[point.getY()][point.getX()].getSaftyScore();
 }
 
+/*
+Finds the best storage to go to 
+Storage needs to be both far from enemy and close to the warrior
+*/
 Storage &Maze::getTargetStorage(int type, Point2D &currentLocation, Point2D &enamy) const
 {
 	priority_queue<StorageNode*, vector<StorageNode*>, CompareStorages> targetQueue;
@@ -249,10 +267,7 @@ Storage &Maze::getTargetStorage(int type, Point2D &currentLocation, Point2D &ena
 	{
 		int size = ammoStorage.size();
 		for (int i = 0; i < size; i++)
-		{
-			StorageNode *n = new StorageNode(currentLocation, enamy, *ammoStorage.at(i));
-			targetQueue.push(n);
-		}		
+			targetQueue.push(new StorageNode(currentLocation, enamy, *ammoStorage.at(i)));
 	}
 
 	else
@@ -268,13 +283,12 @@ stack<Point2D> Maze::aStar(Point2D &currentLocation, Point2D &targetLocation)
 {
 	stack<Point2D> walkingPath;
 	Node *current = nullptr;
-	priority_queue<Node*, vector<Node*>, CompareNodes> pq; // the compare node class may not considare the saftyScore.
+	priority_queue<Node*, vector<Node*>, CompareNodes> pq;
 	vector<Point2D>::iterator gray_it;
 	vector<Point2D*>::iterator black_it;
 	vector <Point2D> gray;
 	vector <Point2D> black;
 	vector <Parent> parents;
-
 	bool finished = false;
 
 	pq.emplace(new Node(currentLocation, targetLocation, 0));
@@ -289,38 +303,35 @@ stack<Point2D> Maze::aStar(Point2D &currentLocation, Point2D &targetLocation)
 
 		current = pq.top();
 		pq.pop(); 
-		parents.push_back(*new Parent(current->GetPoint(), current->GetPoint(), false));
+		parents.push_back(*new Parent(current->getPoint(), current->getPoint(), false));
 
 		// target has been found
-		if (current->GetH() == 0)
+		if (current->getH() == 0)
 		{
 			finished = true;
 
 			// go back to start and enter the steps to walkingPath 
-			itr = find(parents.begin(), parents.end(), Parent(current->GetPoint(), current->GetPoint(), true));
-			walkingPath.push((itr->GetCurrent()));
+			itr = find(parents.begin(), parents.end(), Parent(current->getPoint(), current->getPoint(), true));
+			walkingPath.push((itr->getCurrent()));
 
-			while (itr->HasParent())
+			while (itr->hasParent())
 			{
-				Point2D &tmp_prev = itr->GetPrev();
-				Point2D &tmp_cur = itr->GetCurrent();
+				Point2D &tmp_prev = itr->getPrev();
+				Point2D &tmp_cur = itr->getCurrent();
 				walkingPath.push(tmp_cur);
 				itr = find(parents.begin(), parents.end(),
-					Parent(tmp_prev, current->GetPoint(), true));
-
+					Parent(tmp_prev, current->getPoint(), true));
 			}
 		}
 
 		// check the neighbours
 		else
 		{
-			// remove current from gray 
-			gray_it = find(gray.begin(), gray.end(), current->GetPoint());
+			// remove current from gray and paint it black
+			gray_it = find(gray.begin(), gray.end(), current->getPoint());
+			black.push_back(current->getPoint());
 			if (gray_it != gray.end())
 				gray.erase(gray_it);
-
-			// and paint it black
-			black.push_back(current->GetPoint());
 
 			AddNewNode(*current, targetLocation, gray, black, parents, pq, UP);
 			AddNewNode(*current, targetLocation, gray, black, parents, pq, DOWN);
@@ -333,13 +344,14 @@ stack<Point2D> Maze::aStar(Point2D &currentLocation, Point2D &targetLocation)
 
 bool Maze::AddNewNode(Node & current, Point2D & targetLocation, vector<Point2D>& gray, vector<Point2D>& black, vector<Parent>& parents, priority_queue<Node*, vector<Node*>, CompareNodes>& pq, int direction)
 {
+	int dx, dy;
+	int size = Constants::MSIZE;
+	bool finished = false;
+	double space_weight = 0.1, wall_weight = 5, weight;
 	Node* tmp;
 	Point2D* pt;
 	vector<Point2D>::iterator gray_it;
 	vector<Point2D>::iterator black_it;
-	double space_weight = 0.1, wall_weight = 5, weight;
-	int dx, dy;
-	bool finished = false;
 
 	switch (direction)
 	{
@@ -359,31 +371,30 @@ bool Maze::AddNewNode(Node & current, Point2D & targetLocation, vector<Point2D>&
 		dx = 1;
 		dy = 0;
 		break;
-	} // switch
+	}
 
-	if (maze->parts[current.GetPoint().GetY()][current.GetPoint().GetX() - 1].getType() == MazePart::WARRIOR)
+	if (maze->parts[current.getPoint().getY()][current.getPoint().getX() - 1].getType() == MazePart::WARRIOR)
 		finished = true;
 
-	if (direction == UP && current.GetPoint().GetY() > 0 ||
-		direction == DOWN && current.GetPoint().GetY() < MSIZE - 1 ||
-		direction == LEFT && current.GetPoint().GetX() > 0 ||
-		direction == RIGHT && current.GetPoint().GetX() < MSIZE - 1)
+	if (direction == UP && current.getPoint().getY() > 0 ||
+		direction == DOWN && current.getPoint().getY() < size - 1 ||
+		direction == LEFT && current.getPoint().getX() > 0 ||
+		direction == RIGHT && current.getPoint().getX() < size - 1)
 	{
-		pt = new Point2D(current.GetPoint().GetX() + dx, current.GetPoint().GetY() + dy);
+		pt = new Point2D(current.getPoint().getX() + dx, current.getPoint().getY() + dy);
 		gray_it = find(gray.begin(), gray.end(), *pt);
 		black_it = find(black.begin(), black.end(), *pt);
+		
 		if (gray_it == gray.end() && black_it == black.end()) 
 		{
-			if (maze->parts[current.GetPoint().GetY() + dy][current.GetPoint().GetX() + dx].getType() == MazePart::WALL)
+			if (maze->parts[current.getPoint().getY() + dy][current.getPoint().getX() + dx].getType() == MazePart::WALL)
 				weight = wall_weight;
 			else weight = space_weight;
-			// weight depends on previous weight and wheater we had to dig
-			// to this point or not
-			tmp = new Node(*pt, targetLocation, current.GetG() + weight);
-			pq.emplace(tmp); // insert first node to priority queue
-			gray.push_back(*pt); // paint it gray
-			// add Parent
-			parents.push_back(Parent(tmp->GetPoint(), current.GetPoint(), true));
+			// weight depends on previous weight and wheater we had to dig to this point or not
+			tmp = new Node(*pt, targetLocation, current.getG() + weight);
+			pq.emplace(tmp);
+			gray.push_back(*pt); 
+			parents.push_back(Parent(tmp->getPoint(), current.getPoint(), true));
 		}
 	}
 	return finished;

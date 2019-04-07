@@ -12,7 +12,7 @@ void Action::updateScore()
 	if (val >= 0 && val <= 100)
 		score = val;
 }
-double Action::calcScore(Action::eType type, Warrior & warrior)
+double Action::calcScore(Action::eType type, const Warrior & warrior)
 {
 	switch (type)
 	{
@@ -29,7 +29,7 @@ double Action::calcScore(Action::eType type, Warrior & warrior)
 	return 0;
 }
 
-double Action::calcScoreFindAmmo(Warrior & w)
+double Action::calcScoreFindAmmo(const Warrior & w)
 {
 	double neededAmmo = w.getMaxGuns() - w.getGunsAmmo();
 	double neededGrande = w.getMaxGrandes() - w.getGrenadeAmmo();
@@ -37,13 +37,13 @@ double Action::calcScoreFindAmmo(Warrior & w)
 	return ((neededAmmo + neededGrande) / maxAmount) * MAX_SCORE * w.getCoward();
 }
 
-double Action::calcScoreFindMed(Warrior & w)
+double Action::calcScoreFindMed(const Warrior & w)
 {
 	double maxLife = w.getMaxLife(), life = w.getlifePoints();
 	return (maxLife - life) / maxLife * MAX_SCORE;
 }
 
-double Action::calcScoreFight(Warrior & w)
+double Action::calcScoreFight(const Warrior & w)
 {
 	return MAX_SCORE - calcScoreFindAmmo(w) ;
 }

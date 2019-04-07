@@ -15,14 +15,14 @@ public:
 	static const int DOOR = 10;
 
 private:
-	Point2D *location;
-	double saftyScore;
-	int type;
-	int originType;
+	int		type;
+	int		originType;
+	double	saftyScore;
+	Point2D	*location;
 
 public:
 	MazePart(Point2D *location = nullptr, int type = SPACE, double saftyScore = 0);
-
+	~MazePart();
 	void resetType();
 
 	// getters

@@ -41,14 +41,14 @@ int Room::GetHeight() const
 
 bool Room::IsOverlap(const Room& other)
 {
-	return abs(center->GetX()-other.GetCenter().GetX())
-		< (width+other.width)/2+5 && abs(center->GetY() - 
-			other.GetCenter().GetY()) < (height+other.height)/2+5  ;
+	return abs(center->getX()-other.GetCenter().getX())
+		< (width+other.width)/2+5 && abs(center->getY() - 
+			other.GetCenter().getY()) < (height+other.height)/2+5  ;
 }
 
 int Room::getLeft() const
 {
-	int left = this->GetCenter().GetX() - this->GetWidth() / 2;
+	int left = this->GetCenter().getX() - this->GetWidth() / 2;
 	if (left < 0)
 		return 0;
 	else
@@ -57,15 +57,15 @@ int Room::getLeft() const
 
 int Room::getRight() const
 {
-	int right = this->GetCenter().GetX() + this->GetWidth() / 2;
-	if (right >= Maze::MSIZE)
-		return Maze::MSIZE - 1 ;
+	int right = this->GetCenter().getX() + this->GetWidth() / 2;
+	if (right >= Constants::MSIZE)
+		return Constants::MSIZE - 1 ;
 	return right;
 }
 
 int Room::getTop() const
 {
-	int top = this->GetCenter().GetY() - this->GetHeight() / 2;
+	int top = this->GetCenter().getY() - this->GetHeight() / 2;
 	if(top < 0)
 		return 0;
 	else 
@@ -74,8 +74,8 @@ int Room::getTop() const
 
 int Room::getBottom() const
 {
-	int bottom = this->GetCenter().GetY() + this->GetHeight() / 2;
-	if (bottom >= Maze::MSIZE) return bottom = Maze::MSIZE - 1;
+	int bottom = this->GetCenter().getY() + this->GetHeight() / 2;
+	if (bottom >= Constants::MSIZE) return bottom = Constants::MSIZE - 1;
 	else
 		return bottom;
 }
@@ -85,20 +85,20 @@ vector<Door*> Room::getDoors() const
 	return doors;
 }
 
-void Room::addDoor(Door& door)
+void Room::addDoor(const Door& door)
 {
-	doors.push_back(&door);
+	doors.push_back((Door*)&door);
 }
 
 bool Room::locatedInTheRoom(const Point2D & p) const
 {
-	int x = p.GetX();
-	int y = p.GetY();
+	int x = p.getX();
+	int y = p.getY();
 
-	int top = center->GetY() + (height / 2);
-	int bottom = center->GetY() - (height / 2);
-	int left = center->GetX() - (width / 2);
-	int right = center->GetX() + (width / 2);
+	int top = center->getY() + (height / 2);
+	int bottom = center->getY() - (height / 2);
+	int left = center->getX() - (width / 2);
+	int right = center->getX() + (width / 2);
 	
 	if (y <= top + 1 && y >= bottom -1 && x >= left - 1 && x <= right + 1)
 		return true;
@@ -113,8 +113,8 @@ Point2D& Room::getRandomPointInRoom()
 	int posX = rand() % 2 == 1 ? 1 : -1;
 	int posY = rand() % 2 == 1 ? 1 : -1;
 
-	int x = center->GetX() + posX * (rand() % (width / 2));
-	int y = center->GetY() + posY * (rand() % (height / 2));
+	int x = center->getX() + posX * (rand() % (width / 2));
+	int y = center->getY() + posY * (rand() % (height / 2));
 
 	return *new Point2D(x, y);
 }
@@ -124,8 +124,8 @@ void Room::setRandomLocation(Point2D &p1, Point2D &p2)
 	int posX = rand() % 2 == 1 ? 1 : -1;
 	int posY = rand() % 2 == 1 ? 1 : -1;
 
-	int x = center->GetX() + posX * (rand() % (width / 2));
-	int y = center->GetY() + posY * (rand() % (height / 2));
+	int x = center->getX() + posX * (rand() % (width / 2));
+	int y = center->getY() + posY * (rand() % (height / 2));
 
 	p1.setX(x);
 	p1.setY(y);

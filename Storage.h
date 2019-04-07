@@ -26,6 +26,6 @@ public:
 	double getAmount() const { return amount; }
 	int getId() const { return id; }
 
-	void takeStorage(double amount) { this->amount -= amount; }
+	void takeAmount(double amount) { this->amount -= amount; }
 };
 

@@ -16,11 +16,12 @@ public:
 	Room();
 	~Room();
 private:
-	int id;
-	Point2D *center;
-	vector<Door*> doors;
+	int				id;
+	int				width;
+	int				height;
+	Point2D			*center;
+	vector<Door*>	doors;
 
-	int width, height;
 public:
 	Room(int id, const Point2D& center_point, int w, int h);
 	Point2D &GetCenter() const;
@@ -37,10 +38,7 @@ public:
 	int getBottom() const;
 	vector<Door*> getDoors() const;
 	Point2D& getRandomPointInRoom();
-
-
-	void addDoor(Door& door);
-	
+	void addDoor(const Door &door);
 	void setRandomLocation(Point2D &p1, Point2D &p2);
 };
 

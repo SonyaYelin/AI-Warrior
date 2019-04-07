@@ -15,17 +15,18 @@
 #include "Door.h" 
 #include "Warrior.h" 
 #include "Maze.h"
+#include "Constants.h"
 
 using namespace std;
 
-static const int W = 600;	// window width
-static const int H = 600;	// window height
-static const int MSIZE = Maze::MSIZE;
+static const int W = 600; // window width
+static const int H = 600; // window height
+static const int MSIZE = Constants::MSIZE;
 static const double SQSIZE = 2.0 / MSIZE;
-static const int NUM_OF_WARRIORS = 2;
 
-Warrior *warriors[NUM_OF_WARRIORS];
+Warrior *warrior1, *warrior2;
 Maze* maze;
+
 
 void delay(int number_of_seconds);
 void init();
@@ -61,25 +62,25 @@ void createWarriors()
 {
 	Room *r1 = nullptr, *r2 = nullptr;
 
-	// get 2 random rooms
+	// get 2 random & different rooms
 	srand(time(0));
 	while (r1 == r2)
 	{
-		r1 = &( maze->getRooms()[rand() % Maze::NUM_ROOMS]);
-		r2 = &( maze->getRooms()[rand() % Maze::NUM_ROOMS]);
+		r1 = &( maze->getRooms()[rand() % Constants::NUM_ROOMS]);
+		r2 = &( maze->getRooms()[rand() % Constants::NUM_ROOMS]);
 	}
 
-	warriors[0] = new Warrior(*r1, *new Point2D(r1->GetCenter().GetX(), r1->GetCenter().GetY()), 30, 40, 2, 15, 6, 0.8);
-	warriors[1] = new Warrior(*r2, *new Point2D(r2->GetCenter().GetX(), r2->GetCenter().GetY()), 80, 20, 2, 10, 7, 0.7);
+	warrior1 = new Warrior(*r1, *new Point2D(r1->GetCenter().getX(), r1->GetCenter().getY()), 30, 40, 2, 15, 6, 0.8);
+	drawWarrior(*warrior1);
 
-	drawWarrior(*warriors[0]);
-	drawWarrior(*warriors[1]);
+	warrior2 = new Warrior(*r2, *new Point2D(r2->GetCenter().getX(), r2->GetCenter().getY()), 80, 20, 2, 10, 7, 0.7);
+	drawWarrior(*warrior2);
 }
 
 void drawWarrior(const Warrior &warrior)
 {
 	Point2D location = warrior.getLocation();
-	maze->parts[location.GetY()][location.GetX()].setType(MazePart::WARRIOR);
+	maze->parts[location.getY()][location.getX()].setType(MazePart::WARRIOR);
 }
 
 void DrawMaze()
@@ -90,19 +91,19 @@ void DrawMaze()
 			switch (maze->parts[i][j].getType())
 			{
 			case MazePart::WALL:
-				glColor3d(0, 0, 0); // black
+				glColor3d(0, 0, 0);		// black
 				break;
 			case MazePart::SPACE:
-				glColor3d(1, 1, 1); // white;
+				glColor3d(1, 1, 1);		// white;
 				break;
 			case MazePart::MEDICAL:
-				glColor3d(0,0,1); //blue
+				glColor3d(0,0,1);		//blue
 				break;
 			case MazePart::AMMO:
-				glColor3d(1,0,0); //red
+				glColor3d(1,0,0);		//red
 				break;
 			case MazePart::WARRIOR:
-				glColor3d(1, .8, 0); // ORANGE
+				glColor3d(1, .8, 0);	// ORANGE
 				break;
 
 			}
@@ -128,13 +129,14 @@ void display()
 
 void idle()
 {
-	if (!warriors[0]->isAlive() || !warriors[1]->isAlive())
+	if (!warrior1->isAlive() || !warrior2->isAlive())
 		return;
 	
-	(warriors[0])->selectAction(*warriors[1]);
-	(warriors[1])->selectAction(*warriors[0]);
+	warrior1->makeMove(*warrior2);
+	warrior2->makeMove(*warrior1);
 	
-	glutPostRedisplay(); // calls indirectly to display
+	// calls indirectly to display
+	glutPostRedisplay();
 	delay(5);
 }
 
@@ -151,6 +153,9 @@ void main(int argc, char* argv[])
 	init();
 
 	glutMainLoop();
+
+	/*delete warrior1;
+	delete warrior2;*/
 }
 
 
